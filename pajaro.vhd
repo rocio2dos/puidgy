@@ -35,8 +35,8 @@ entity pajaro is
 				  posy : integer := 200);
     Port ( --clk : in STD_LOGIC;
 			  --reset : in STD_LOGIC;
-			  --boton : in STD_LOGIC;
-			  --enable : in STD_LOGIC;		--Pulso cuando avanza una pantalla (O3V)
+			  botonSubir : in STD_LOGIC;
+			  finPantalla : in STD_LOGIC;		--Pulso cuando avanza una pantalla (O3V)
 			  eje_x : in  STD_LOGIC_VECTOR (Nbit-1 downto 0);
            eje_y : in  STD_LOGIC_VECTOR (Nbit-1 downto 0);
            RED_int : out  STD_LOGIC_VECTOR (2 downto 0);
@@ -45,6 +45,9 @@ entity pajaro is
 end pajaro;
 
 architecture Behavioral of pajaro is
+
+	type estado is (reposo, actualizarArriba, reposo2, actualizarY, actualizarV);
+	signal estado_actual, estado_proximo : estado;
 	--constant MAX: integer := max_x+max_y;
 	--signal cuenta_actual, cuenta_prox: integer range MAX downto 0;
 
@@ -61,24 +64,36 @@ begin
 --		end if;
 --	end process;
 
---	comb: process(cuenta_actual, imagen_actual, enable)
---	begin
---		cuenta_prox <= cuenta_actual;
---		imagen_prox <= imagen_actual;
---
---		if(enable='1' and cuenta_actual>=MAX) then
---				cuenta_prox <= 0;
---				if(imagen_actual = 3) then
---					imagen_prox <= 0;
---				else
---					imagen_prox <= imagen_actual+1;
---				end if;
---		elsif(enable='1') then
---			cuenta_prox <= cuenta_actual+3;
---		end if;
---
---	end process;
-	
+	comb:process(estado_actual, botonSubir, finPantalla)
+	begin
+		estado_proximo <= estado_actual;
+		case estado_actual is
+			when reposo =>
+				if (boton = '1') then -- añadir muerte
+					estado_proximo <= actualizarArriba;
+				elsif (finPantalla = '1' AND posy /= MAXY) -- definir maxy, posy señal
+					estado_proximo <= actualizarY;
+				end if;
+			when actualizarArriba =>
+				subir <= '1'; -- crear señal (flag)
+				estado_proximo <= reposo2; -- antiguo esperarBoton cambiar nombre
+			when reposo2 =>
+				if (finPantalla = '1' AND posy /= MAXY) then -- definir maxy, posy señal
+					estado_proximo <= actualizarY;
+				end if;
+			when actualizarY =>
+				if (subir = '1' AND pos_y >= vel_y) then -- no se sale de la pantalla
+					p_pos_y <= pos_y - vel_y;
+					subir <= '0'
+				elsif (subir = '1' AND pos_y < vel_y)
+					p_pos_y <= 0;
+					subir <= '0'
+				elsif (subir = '0' AND pos_y + alto + vel_y < MAXY) -- hacer que se hunda un poco
+					p_pos_y <= pos_y + vel_y;
+				else
+					p_pos_y <= MAXY - alto;
+				end if;
+					
 	dibuja: process(eje_x, eje_y)
 	begin
 		--Colores a 0 en general
