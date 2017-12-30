@@ -32,6 +32,7 @@ use IEEE.NUMERIC_STD.ALL;
 entity Flappy is
     Port ( clk : in  STD_LOGIC;
            reset : in  STD_LOGIC;
+			  botonSubir : in STD_LOGIC;
            VS : out  STD_LOGIC;
            HS : out  STD_LOGIC;
            R : out  STD_LOGIC_VECTOR (2 downto 0);
@@ -72,11 +73,12 @@ architecture Behavioral of Flappy is
 
 	component pajaro
 		Generic ( Nbit : integer;
-					 posx : integer;
-				    posy : integer);
-		Port ( --clk : in STD_LOGIC;
-				 --reset : in STD_LOGIC;
-				 --enable : in STD_LOGIC;
+					 pos_x : integer;
+				    alto : integer);
+		Port ( clk : in STD_LOGIC;
+				 reset : in STD_LOGIC;
+				 botonSubir : in STD_LOGIC;
+ 			    finPantalla : in STD_LOGIC;
 				 eje_x : in  STD_LOGIC_VECTOR (Nbit-1 downto 0);
 				 eje_y : in  STD_LOGIC_VECTOR (Nbit-1 downto 0);
 				 RED_int : out  STD_LOGIC_VECTOR (2 downto 0);
@@ -118,7 +120,7 @@ architecture Behavioral of Flappy is
 	signal BLUE_int: STD_LOGIC_VECTOR(1 downto 0);
 	
 	--Señal enable del bloque pajaro
-	--signal enable_pajaro: STD_LOGIC;
+	signal enable_g: STD_LOGIC;
 
 begin
 	fpixel: frec_pixel
@@ -126,6 +128,14 @@ begin
 			clk => clk,
 			reset => reset,
 			clk_pixel => enable_cont_h
+		);
+		
+	contador_g: contador_digito
+		Port map(
+			clk => clk,
+			reset => reset,
+			O3V => end_line_v,
+			enable_gravedad => enable_g
 		);
 		
 	cont_h: contador
@@ -193,17 +203,18 @@ begin
 			O3 => end_line_v
 		);
 
-	--enable_pajaro <= end_line_v;		--O3V
+	--enable_g <= end_line_v;		--O3V
 	puidgy: pajaro
 		Generic map(
 			Nbit => Nbit_ejes,
-			posx => 100,
-			posy => 200
+			pos_x => 100,
+			alto => 32
 		)
 		Port map( 
-			--clk => clk,
-			--reset => reset,
-			--enable => enable_dib,
+			clk => clk,
+			reset => reset,
+			botonSubir => botonSubir,
+			finPantalla => end_line_v,
 			eje_x => eje_x,
 			eje_y => eje_y,
 			RED_int => RED_int,

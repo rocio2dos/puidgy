@@ -1,5 +1,6 @@
 NET "clk" LOC = "B8";
 NET "reset" LOC = "G12";
+NET "botonSubir" LOC = "C11";
 
 NET "VS" LOC = "K13";
 NET "HS" LOC = "J14";
