@@ -118,9 +118,6 @@ architecture Behavioral of Flappy is
 	--Señales internas de color (conexión dibuja->gen_color)
 	signal RED_int, GREEN_int: STD_LOGIC_VECTOR(2 downto 0);
 	signal BLUE_int: STD_LOGIC_VECTOR(1 downto 0);
-	
-	--Señal enable del bloque pajaro
-	signal enable_g: STD_LOGIC;
 
 begin
 	fpixel: frec_pixel
@@ -128,14 +125,6 @@ begin
 			clk => clk,
 			reset => reset,
 			clk_pixel => enable_cont_h
-		);
-		
-	contador_g: contador_digito
-		Port map(
-			clk => clk,
-			reset => reset,
-			O3V => end_line_v,
-			enable_gravedad => enable_g
 		);
 		
 	cont_h: contador

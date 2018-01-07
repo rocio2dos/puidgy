@@ -51,6 +51,7 @@ architecture Behavioral of pajaro is
 	signal estado_actual, estado_proximo : estado;
 	signal pos_y, p_pos_y : unsigned (Nbit-1 downto 0);
 	signal vel_y, p_vel_y : unsigned (Nbit-1 downto 0);
+	signal contador, p_contador : unsigned (Nbit-1 downto 0);
 	signal subir, p_subir : STD_LOGIC;
 	
 	constant MAXY: unsigned := to_unsigned(480, Nbit);
@@ -64,73 +65,77 @@ begin
 			pos_y <= to_unsigned(0, Nbit);
 			vel_y <= to_unsigned(0, Nbit);
 			subir <= '0';
+			contador <= (others => '0');
 			estado_actual <= reposo;
 		elsif(rising_edge(clk)) then
 			estado_actual <= estado_proximo;
 			pos_y <= p_pos_y;
 			vel_y <= p_vel_y;
 			subir <= p_subir;
+			contador <= p_contador;
 		end if;
 	end process;
 
-	comb:process(estado_actual, botonSubir, finPantalla, pos_y, vel_y, subir, enable_gravedad)
+	comb:process(estado_actual, botonSubir, finPantalla, pos_y, vel_y, subir, contador)
 	begin
 		estado_proximo <= estado_actual;
 		p_pos_y <= pos_y;
 		p_vel_y <= vel_y;
 		p_subir <= subir;
+		p_contador <= contador;
 		
 		case estado_actual is
 			when reposo =>
-				if (botonSubir = '1') then -- añadir muerte
+				if (botonSubir = '1') then
 					estado_proximo <= actualizarArriba;
-				elsif (finPantalla = '1' AND pos_y /= MAXY) then -- definir maxy, posy señal
+				elsif (finPantalla = '1' AND pos_y /= MAXY) then -- si llega abajo de la pantalla ya solo se puede subir
 					estado_proximo <= actualizarY;
 				end if;
 			when actualizarArriba =>
-				p_subir <= '1'; -- crear señal (flag)
-				estado_proximo <= reposo2; -- antiguo esperarBoton cambiar nombre
+				p_subir <= '1'; -- indicamos que la proxima accion a realizar es subir (actualizarY)
+				estado_proximo <= reposo2;
 			when reposo2 =>
-				if (finPantalla = '1' AND pos_y /= MAXY) then -- definir maxy, posy señal
+				if (finPantalla = '1' AND pos_y /= MAXY) then -- esperamos a fin de pantalla
 					estado_proximo <= actualizarY;
 				end if;
 			when actualizarY =>
-				if (subir = '1' AND pos_y >= impulso) then -- no se sale de la pantalla
-					p_pos_y <= pos_y - impulso;
-					p_subir <= '0';
-				elsif (subir = '1' AND pos_y < impulso) then
-					p_pos_y <= (others => '0');
-					p_subir <= '0';
-				elsif (subir = '0' AND pos_y + alto + vel_y < MAXY) then --p`ñrdtlque se hunda un poco
-					p_pos_y <= pos_y + vel_y;
-				else
-					p_pos_y <= MAXY - alto;
-				end if;
-				estado_proximo <= actualizarV;
-			when actualizarV =>
-				if (subir = '1') then
-					p_vel_y <= (others => '0');
-				elsif (contador > 20) then
-					p_vel_y <= vel_y + gravedad;
+				-- CONTADOR --
+				if (contador > 20) then -- siempre que estemos aqui es porque se ha terminado una pantalla luego aumentamos el contador
 					p_contador <= (others => '0');
+				else
+					p_contador <= contador + 1;
 				end if;
 				
+				-- POSICION --
+				if (subir = '1' AND pos_y >= impulso) then -- no se sale de la pantalla
+					p_pos_y <= pos_y - impulso;
+				elsif (subir = '1' AND pos_y < impulso) then -- si el impulso hiciese salir al pajaro de la pantalla lo ponemos en la posicion 0
+					p_pos_y <= (others => '0');
+				elsif (subir = '0' AND pos_y + alto + vel_y < MAXY) then -- ANADIR QUE SE HUNDA
+					p_pos_y <= pos_y + vel_y;
+				else
+					p_pos_y <= MAXY - alto; -- el pajaro se situa abajo de la pantalla
+				end if;
+				
+				-- ESTADO --
+				estado_proximo <= actualizarV;
+			when actualizarV =>
+				-- VELOCIDAD --
+				if (subir = '1') then
+					p_subir <= '0'; -- no se vuelve a subir hasta que se pulse otra vez el boton
+					p_vel_y <= (others => '0');
+				elsif (contador = 20) then -- solo aumentamos la velocidad cuando contamos 20 pantallas (disminuye velocidad de caida)
+					p_vel_y <= vel_y + gravedad;			
+				end if;
+				
+				-- ESTADO --
 				if (botonSubir = '1') then
-					estado_proximo <= reposo2;
+					estado_proximo <= reposo2; -- estado que evita que se suba manteniendo pulsado el boton
 				else
 					estado_proximo <= reposo;
 				end if;
 			end case;
 		end process;
-		
-	contador: process
-	begin
-		if (O3V = '1') then
-			p_contador <= contador + 1;
-		else
-			p_contador <= contador;
-		end if;
-	end process;
 					
 	dibuja: process(eje_x, eje_y, pos_y)
 	begin
