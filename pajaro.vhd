@@ -32,7 +32,7 @@ use IEEE.NUMERIC_STD.ALL;
 entity pajaro is
 	 Generic ( Nbit : integer := 10;
 				  pos_x : integer := 100;
-				  alto : integer := 32;
+				  alto : integer := 63;			--Alto del pajaro (64x64)
 				  impulso : integer := 35);
     Port ( clk : in STD_LOGIC;
 			  reset : in STD_LOGIC;
@@ -55,10 +55,22 @@ architecture Behavioral of pajaro is
 	signal vel_subida, p_vel_subida : unsigned (Nbit-1 downto 0);
 	signal contador, p_contador : unsigned (Nbit-1 downto 0);
 	
+	signal dir_mem, p_dir_mem : STD_LOGIC_VECTOR(11 downto 0);
+	signal dato_mem : STD_LOGIC_VECTOR(2 downto 0);
+	signal cont_mem, p_cont_mem : STD_LOGIC;
+	
 	constant MAXY: unsigned := to_unsigned(480, Nbit);
 	constant gravedad: unsigned := to_unsigned(3, Nbit);
 	constant vely_inicial :unsigned := to_unsigned(1, Nbit);
 	constant posy_inicial : unsigned(Nbit-1 downto 0) := (others=>'0');
+	
+	component mempajaro
+		port (
+			clka : IN STD_LOGIC;
+			addra : IN STD_LOGIC_VECTOR(11 downto 0);
+			douta : OUT STD_LOGIC_VECTOR(2 downto 0)
+		);
+	end component;
 
 begin
 	
@@ -70,12 +82,15 @@ begin
 			vel_subida <= (others => '0');
 			contador <= (others => '0');
 			estado_actual <= reposo;
+			dir_mem <= (others => '0');
 		elsif(rising_edge(clk)) then
 			estado_actual <= estado_proximo;
 			pos_y <= p_pos_y;
 			vel_y <= p_vel_y;
 			vel_subida <= p_vel_subida;
 			contador <= p_contador;
+			dir_mem <= p_dir_mem;
+			cont_mem <= p_cont_mem;
 		end if;
 	end process;
 
@@ -95,8 +110,13 @@ begin
 					estado_proximo <= actualizarY;
 				end if;
 			when actualizarArriba =>
+<<<<<<< HEAD
+				p_subir <= '1'; -- indicamos que la proxima accion a realizar es subir (actualizarY)
+				--vel_subida <= 10;
+=======
 				p_vel_subida <= to_unsigned(8, Nbit); -- damos una velocidad de subida
 				p_vel_y <= (others => '0'); -- eliminamos la velocidad de bajada
+>>>>>>> be883a8e01b47fcaf884507aff5bac681e791f9b
 				estado_proximo <= reposo2;
 			when reposo2 =>
 				if (finPantalla = '1' AND pos_y /= MAXY) then -- esperamos a fin de pantalla
@@ -142,21 +162,59 @@ begin
 					estado_proximo <= reposo;
 				end if;
 			end case;
-		end process;
-					
-	dibuja: process(eje_x, eje_y, pos_y)
+		end process;					
+	
+	rom : mempajaro
+		port map (
+			clka => clk,
+			addra => dir_mem,
+			douta => dato_mem
+		);
+	
+	dibuja: process(eje_x, eje_y, pos_y, dir_mem, dato_mem, cont_mem)
 	begin
 		--Colores a 0 en general
 		RED_int<="000";
 		GREEN_int<="000";
 		BLUE_int<="00";
 		
+		p_dir_mem <= dir_mem;
+		p_cont_mem <= cont_mem;
+		
 		--Dibujamos el cuadrado en rojo
-		if(unsigned(eje_x)>=pos_x and unsigned(eje_x)<=pos_x+32 and
-			unsigned(eje_y)>=pos_y and unsigned(eje_y)<=pos_y+32) then
-			RED_int<="111";
+--		if(unsigned(eje_x)>=pos_x and unsigned(eje_x)<=pos_x+32 and
+--			unsigned(eje_y)>=pos_y and unsigned(eje_y)<=pos_y+32) then
+--			RED_int<="111";
+--		end if;
+
+		if( (unsigned(eje_x)>=pos_x and unsigned(eje_x)<=pos_x+alto) 
+			and (unsigned(eje_y)>=pos_y and unsigned(eje_y)<=pos_y+alto) ) then
+			p_cont_mem <= not cont_mem;
+			if(cont_mem = '1') then
+				p_dir_mem <= std_logic_vector(unsigned(dir_mem) + 1);
+			end if;
+			
+			if( dato_mem="011" ) then			--Cyan: mandamos color de fondo
+				RED_int<="000";
+				GREEN_int<="000";
+				BLUE_int<="00";
+			elsif( dato_mem = "000" ) then	--Negro: mandamos gris
+				RED_int<="000";
+				GREEN_int<="001";
+				BLUE_int<="01";
+			else
+				if( dato_mem(0)='1' ) then			-- Azul a 1
+					BLUE_int<="11";
+				end if;
+				if( dato_mem(1)='1' ) then		-- Verde a 1
+					GREEN_int<="111";
+				end if;
+				if( dato_mem(2)='1' ) then		-- Rojo a 1
+					RED_int<="111";
+				end if;
+			end if;
 		end if;
-	
+
 	end process;
 
 end Behavioral;
