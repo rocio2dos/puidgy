@@ -14,4 +14,3 @@ NET "G<1>" LOC = "G13";
 NET "G<2>" LOC = "G14";
 NET "B<0>" LOC = "H13";
 NET "B<1>" LOC = "J13";
-NET "B<1>" LOC = "J13";

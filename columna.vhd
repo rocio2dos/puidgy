@@ -30,10 +30,6 @@ use IEEE.NUMERIC_STD.ALL;
 --use UNISIM.VComponents.all;
 
 entity columna is
-	 Generic ( Nbit : integer := 10;
-				  ancho_col : integer := 64;
-				  pos_y_gap : integer := 200;
-				  max_x : integer := 640);
 	 Generic ( Nbit : integer;
 				  ancho_col : integer;
 				  pos_y_gap : integer;
@@ -41,7 +37,6 @@ entity columna is
 				  MAX_X : integer);				-- Ancho de la pantalla
     Port ( clk : in STD_LOGIC;
 			  reset : in STD_LOGIC;
-			  finPantalla : in STD_LOGIC;		--Pulso cuando avanza una pantalla (O3V)
 			  finPantalla : in STD_LOGIC;		-- Pulso cuando avanza una pantalla (O3V)
 			  eje_x : in  STD_LOGIC_VECTOR (Nbit-1 downto 0);
            eje_y : in  STD_LOGIC_VECTOR (Nbit-1 downto 0);
@@ -53,28 +48,24 @@ end columna;
 
 architecture Behavioral of columna is
 	
-	-- Declaraciï¿½n de tipos
+	-- Declaración de tipos
 	type estado is (
 		reposo,
 		mover_columna,
 		reset_columna		
 	);
 	
-	-- Seï¿½ales
+	-- Señales
 	signal estado_actual, estado_proximo : estado;
 	signal pos_x, p_pos_x : unsigned (Nbit-1 downto 0);
 
-	constant gap : unsigned := to_unsigned(128, Nbit);
 	-- Constantes
 	constant vel_x : unsigned := to_unsigned(3, Nbit);
-	-- constant pos_x_inicial : unsigned := to_unsigned(max_x, Nbit) + to_unsigned(ancho_col, Nbit);
-	constant pos_x_inicial : unsigned := to_unsigned(640+ancho_col, Nbit);
-	
 	constant pos_x_inicial : unsigned := to_unsigned(MAX_X+ancho_col, Nbit);
 
 begin
 	
-	-------- PROCESO Sï¿½NCRONO ---------------------------
+	-------- PROCESO SÍNCRONO ---------------------------
 	sinc: process(clk, reset)
 	begin
 		if(reset='1') then
@@ -87,7 +78,7 @@ begin
 	end process;
 
 
-	-------- PROCESO COMBINACIONAL - Mï¿½QUINA DE ESTADOS DE LA COLUMNA ------------------
+	-------- PROCESO COMBINACIONAL - MÁQUINA DE ESTADOS DE LA COLUMNA ------------------
 	comb: process(estado_actual, finPantalla, pos_x, muerte)
 	begin
 		estado_proximo <= estado_actual;
@@ -118,21 +109,17 @@ begin
 	-------- PROCESO COMBINACIONAL - DIBUJO DE LA COLUMNA ----------------------
 	dibuja: process(eje_x, eje_y, pos_x)
 	begin
-		--Colores a 0 en general
 		-- Colores a 0 en general
 		RED<="000";
 		GREEN<="000";
 		BLUE<="00";
 		
-		--Dibujamos el cuadrado en rojo
 		-- Dibujamos la columna en verde
 		if((unsigned(eje_x)+ancho_col>=pos_x and unsigned(eje_x)<=pos_x) and 
-			(unsigned(eje_y)<=pos_y_gap or unsigned(eje_y)>=pos_y_gap + gap)) then
 			(unsigned(eje_y)<=pos_y_gap or unsigned(eje_y)>=pos_y_gap + tam_gap)) then
 			GREEN<="111";
 		end if;
 	
-end process;
 	end process;
 
 end Behavioral;
