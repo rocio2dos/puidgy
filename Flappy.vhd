@@ -79,11 +79,28 @@ architecture Behavioral of Flappy is
 				 reset : in STD_LOGIC;
 				 botonSubir : in STD_LOGIC;
  			    finPantalla : in STD_LOGIC;
+				 muerte : in STD_LOGIC;
 				 eje_x : in  STD_LOGIC_VECTOR (Nbit-1 downto 0);
 				 eje_y : in  STD_LOGIC_VECTOR (Nbit-1 downto 0);
 				 RED_int : out  STD_LOGIC_VECTOR (2 downto 0);
 				 GREEN_int : out  STD_LOGIC_VECTOR (2 downto 0);
 				 BLUE_int : out  STD_LOGIC_VECTOR (1 downto 0));
+	end component;
+
+	component columna is
+		 Generic ( Nbit : integer := 10;
+					  ancho_col : integer := 64;
+					  pos_y_gap : integer := 200;
+					  max_x : integer := 640);
+		 Port ( clk : in STD_LOGIC;
+				  reset : in STD_LOGIC;
+				  finPantalla : in STD_LOGIC;		--Pulso cuando avanza una pantalla (O3V)
+				  muerte : in STD_LOGIC;
+				  eje_x : in  STD_LOGIC_VECTOR (Nbit-1 downto 0);
+				  eje_y : in  STD_LOGIC_VECTOR (Nbit-1 downto 0);
+				  RED : out  STD_LOGIC_VECTOR (2 downto 0);
+				  GREEN : out  STD_LOGIC_VECTOR (2 downto 0);
+				  BLUE : out  STD_LOGIC_VECTOR (1 downto 0));
 	end component;
 
 	component gen_color
@@ -98,6 +115,23 @@ architecture Behavioral of Flappy is
 			BLUE : out STD_LOGIC_VECTOR (1 downto 0)
 		);
 	end component;
+	
+	component gestor
+    Port ( clk : in STD_LOGIC;
+			  reset : in STD_LOGIC;
+			  R_pajaro : in  STD_LOGIC_VECTOR (2 downto 0);
+           G_pajaro : in  STD_LOGIC_VECTOR (2 downto 0);
+           B_pajaro : in  STD_LOGIC_VECTOR (1 downto 0);
+           R_columna : in  STD_LOGIC_VECTOR (2 downto 0);
+           G_columna : in  STD_LOGIC_VECTOR (2 downto 0);
+           B_columna : in  STD_LOGIC_VECTOR (1 downto 0);
+           R_final : out  STD_LOGIC_VECTOR (2 downto 0);
+           G_final : out  STD_LOGIC_VECTOR (2 downto 0);
+           B_final : out  STD_LOGIC_VECTOR (1 downto 0);
+			  muerte : out STD_LOGIC
+		);
+	end component;
+
 	
 	--Simulacion
 	--constant alto: integer := 4;
@@ -118,6 +152,14 @@ architecture Behavioral of Flappy is
 	--Señales internas de color (conexión dibuja->gen_color)
 	signal RED_int, GREEN_int: STD_LOGIC_VECTOR(2 downto 0);
 	signal BLUE_int: STD_LOGIC_VECTOR(1 downto 0);
+	
+	signal RED_pajaro, GREEN_pajaro: STD_LOGIC_VECTOR(2 downto 0);
+	signal BLUE_pajaro: STD_LOGIC_VECTOR(1 downto 0);
+	
+	signal RED_columna, GREEN_columna: STD_LOGIC_VECTOR(2 downto 0);
+	signal BLUE_columna: STD_LOGIC_VECTOR(1 downto 0);
+	
+	signal muerte : STD_LOGIC;
 
 begin
 	fpixel: frec_pixel
@@ -192,7 +234,6 @@ begin
 			O3 => end_line_v
 		);
 
-	--enable_g <= end_line_v;		--O3V
 	puidgy: pajaro
 		Generic map(
 			Nbit => Nbit_ejes,
@@ -204,15 +245,51 @@ begin
 			reset => reset,
 			botonSubir => botonSubir,
 			finPantalla => end_line_v,
+			muerte => muerte,
 			eje_x => eje_x,
 			eje_y => eje_y,
-			RED_int => RED_int,
-			GREEN_int => GREEN_int,
-			BLUE_int => BLUE_int
-		);	
-
+			RED_int => RED_pajaro,
+			GREEN_int => GREEN_pajaro,
+			BLUE_int => BLUE_pajaro
+		);
+		
+	col: columna
+		 Generic map ( 
+			Nbit => Nbit_ejes,
+			ancho_col => 64,
+			pos_y_gap => 128,
+			max_x => ancho
+		 )
+		 Port map( 
+			clk => clk,
+			reset => reset,
+			finPantalla => end_line_v,
+			muerte => muerte,
+			eje_x => eje_x,
+			eje_y => eje_y,
+			RED => RED_columna,
+			GREEN => GREEN_columna,
+			BLUE => BLUE_columna
+		);
+		
+	manager: gestor
+		Port map (
+			clk => clk,
+			reset => reset,
+			R_pajaro => RED_pajaro,
+         G_pajaro => GREEN_pajaro,
+			B_pajaro => BLUE_pajaro,
+			R_columna => RED_columna,
+			G_columna => GREEN_columna,
+			B_columna => BLUE_columna,
+			R_final => RED_int,
+			G_final => GREEN_int,
+			B_final => BLUE_int,
+			muerte => muerte
+		);
+		
 	gen: gen_color
-		Port map ( 
+		Port map (		
 			blank_h => blank_h,
 			blank_v => blank_v,
 			RED_in => RED_int,

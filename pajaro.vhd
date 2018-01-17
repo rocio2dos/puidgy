@@ -40,6 +40,7 @@ entity pajaro is
 			  finPantalla : in STD_LOGIC;		--Pulso cuando avanza una pantalla (O3V)
 			  eje_x : in  STD_LOGIC_VECTOR (Nbit-1 downto 0);
            eje_y : in  STD_LOGIC_VECTOR (Nbit-1 downto 0);
+			  muerte : in STD_LOGIC;
            RED_int : out  STD_LOGIC_VECTOR (2 downto 0);
            GREEN_int : out  STD_LOGIC_VECTOR (2 downto 0);
            BLUE_int : out  STD_LOGIC_VECTOR (1 downto 0));
@@ -56,14 +57,16 @@ architecture Behavioral of pajaro is
 	
 	constant MAXY: unsigned := to_unsigned(480, Nbit);
 	constant gravedad: unsigned := to_unsigned(1, Nbit);
+	constant vely_inicial :unsigned := to_unsigned(1, Nbit);
+	constant posy_inicial : unsigned(Nbit-1 downto 0) := (others=>'0');
 
 begin
 	
 	sinc: process(clk, reset)
 	begin
 		if(reset='1') then
-			pos_y <= to_unsigned(0, Nbit);
-			vel_y <= to_unsigned(0, Nbit);
+			pos_y <= posy_inicial;
+			vel_y <= vely_inicial;
 			subir <= '0';
 			contador <= (others => '0');
 			estado_actual <= reposo;
@@ -76,7 +79,7 @@ begin
 		end if;
 	end process;
 
-	comb:process(estado_actual, botonSubir, finPantalla, pos_y, vel_y, subir, contador)
+	comb:process(estado_actual, botonSubir, finPantalla, pos_y, vel_y, subir, contador, muerte)
 	begin
 		estado_proximo <= estado_actual;
 		p_pos_y <= pos_y;
@@ -86,13 +89,14 @@ begin
 		
 		case estado_actual is
 			when reposo =>
-				if (botonSubir = '1') then
+				if (muerte = '0' AND botonSubir = '1') then -- si no hay muerte
 					estado_proximo <= actualizarArriba;
 				elsif (finPantalla = '1' AND pos_y /= MAXY) then -- si llega abajo de la pantalla ya solo se puede subir
 					estado_proximo <= actualizarY;
 				end if;
 			when actualizarArriba =>
 				p_subir <= '1'; -- indicamos que la proxima accion a realizar es subir (actualizarY)
+				vel_subida <= 10;
 				estado_proximo <= reposo2;
 			when reposo2 =>
 				if (finPantalla = '1' AND pos_y /= MAXY) then -- esperamos a fin de pantalla
@@ -100,7 +104,7 @@ begin
 				end if;
 			when actualizarY =>
 				-- CONTADOR --
-				if (contador > 20) then -- siempre que estemos aqui es porque se ha terminado una pantalla luego aumentamos el contador
+				if (contador > 5) then -- siempre que estemos aqui es porque se ha terminado una pantalla luego aumentamos el contador
 					p_contador <= (others => '0');
 				else
 					p_contador <= contador + 1;
@@ -110,7 +114,7 @@ begin
 				if (subir = '1' AND pos_y >= impulso) then -- no se sale de la pantalla
 					p_pos_y <= pos_y - impulso;
 				elsif (subir = '1' AND pos_y < impulso) then -- si el impulso hiciese salir al pajaro de la pantalla lo ponemos en la posicion 0
-					p_pos_y <= (others => '0');
+					p_pos_y <= posy_inicial;
 				elsif (subir = '0' AND pos_y + alto + vel_y < MAXY) then -- ANADIR QUE SE HUNDA
 					p_pos_y <= pos_y + vel_y;
 				else
@@ -123,8 +127,8 @@ begin
 				-- VELOCIDAD --
 				if (subir = '1') then
 					p_subir <= '0'; -- no se vuelve a subir hasta que se pulse otra vez el boton
-					p_vel_y <= (others => '0');
-				elsif (contador = 20) then -- solo aumentamos la velocidad cuando contamos 20 pantallas (disminuye velocidad de caida)
+					p_vel_y <= vely_inicial;
+				elsif (contador = 5) then -- solo aumentamos la velocidad cuando contamos 20 pantallas (disminuye velocidad de caida)
 					p_vel_y <= vel_y + gravedad;			
 				end if;
 				
