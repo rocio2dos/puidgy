@@ -1,3 +1,4 @@
+# Reloj bueno es el M6
 NET "clk" LOC = "B8";
 NET "reset" LOC = "G12";
 NET "botonSubir" LOC = "C11";

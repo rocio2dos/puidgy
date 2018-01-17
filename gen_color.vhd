@@ -33,10 +33,10 @@ entity gen_color is
 	Port ( 
 		blank_h : in STD_LOGIC;
 		blank_v : in STD_LOGIC;
-		RED_in : in STD_LOGIC_VECTOR (2 downto 0);
-		GREEN_in : in STD_LOGIC_VECTOR (2 downto 0);
-		BLUE_in : in STD_LOGIC_VECTOR (1 downto 0);
-		RED : out STD_LOGIC_VECTOR (2 downto 0);
+		RED_int : in STD_LOGIC_VECTOR (2 downto 0);			--Señales internas de color
+		GREEN_int : in STD_LOGIC_VECTOR (2 downto 0);
+		BLUE_int : in STD_LOGIC_VECTOR (1 downto 0);
+		RED : out STD_LOGIC_VECTOR (2 downto 0);				--Señales de color definitivas de salida
 		GREEN : out STD_LOGIC_VECTOR (2 downto 0);
 		BLUE : out STD_LOGIC_VECTOR (1 downto 0)
 	);
@@ -47,16 +47,16 @@ architecture Behavioral of gen_color is
 begin
 
 	colorea: process(Blank_H, Blank_V, 
-						  RED_in, GREEN_in, BLUE_in)
+						  RED_int, GREEN_int, BLUE_int)
 	begin
 		if (Blank_H='1' or Blank_V='1') then		--Fuera de pantalla
 			RED<=(others => '0'); 
 			GREEN<=(others => '0');
 			BLUE<=(others => '0');
 		else
-			RED<=RED_in; 
-			GREEN<=GREEN_in; 
-			BLUE<=BLUE_in;
+			RED<=RED_int; 
+			GREEN<=GREEN_int; 
+			BLUE<=BLUE_int;
 		end if;
 	end process;
 

@@ -42,12 +42,15 @@ end Flappy;
 
 architecture Behavioral of Flappy is
 	
+	------------------------ COMPONENTES ---------------------------
+	----- Divisor de frecuencia
 	component frec_pixel
 		Port (clk : in STD_LOGIC;
 				reset : in STD_LOGIC;
 				clk_pixel : out STD_LOGIC);
 	end component;
-	
+
+	----- Contador
 	component contador
 		 Generic ( Nbit : integer);
 		 Port ( clk : in  STD_LOGIC;
@@ -57,6 +60,7 @@ architecture Behavioral of Flappy is
 				  cuenta : out  STD_LOGIC_VECTOR (Nbit-1 downto 0));
 	end component;
 
+	----- Comparador
 	component comparador
 		 Generic ( Nbit : integer;
 					  End_of_Screen : integer;
@@ -71,10 +75,11 @@ architecture Behavioral of Flappy is
 				  O3 : out  STD_LOGIC);
 	end component;
 
+	----- Pajaro
 	component pajaro
 		Generic ( Nbit : integer;
 					 pos_x : integer;
-				    alto : integer);
+				    tam_pajaro : integer);
 		Port ( clk : in STD_LOGIC;
 				 reset : in STD_LOGIC;
 				 botonSubir : in STD_LOGIC;
@@ -82,16 +87,18 @@ architecture Behavioral of Flappy is
 				 muerte : in STD_LOGIC;
 				 eje_x : in  STD_LOGIC_VECTOR (Nbit-1 downto 0);
 				 eje_y : in  STD_LOGIC_VECTOR (Nbit-1 downto 0);
-				 RED_int : out  STD_LOGIC_VECTOR (2 downto 0);
-				 GREEN_int : out  STD_LOGIC_VECTOR (2 downto 0);
-				 BLUE_int : out  STD_LOGIC_VECTOR (1 downto 0));
+				 RED : out  STD_LOGIC_VECTOR (2 downto 0);
+				 GREEN : out  STD_LOGIC_VECTOR (2 downto 0);
+				 BLUE : out  STD_LOGIC_VECTOR (1 downto 0));
 	end component;
 
+	----- Columna
 	component columna is
-		 Generic ( Nbit : integer := 10;
-					  ancho_col : integer := 64;
-					  pos_y_gap : integer := 200;
-					  max_x : integer := 640);
+		 Generic ( Nbit : integer;
+					  ancho_col : integer;
+					  pos_y_gap : integer;
+					  tam_gap : integer;
+					  MAX_X : integer);
 		 Port ( clk : in STD_LOGIC;
 				  reset : in STD_LOGIC;
 				  finPantalla : in STD_LOGIC;		--Pulso cuando avanza una pantalla (O3V)
@@ -103,19 +110,7 @@ architecture Behavioral of Flappy is
 				  BLUE : out  STD_LOGIC_VECTOR (1 downto 0));
 	end component;
 
-	component gen_color
-		Port ( 
-			blank_h : in STD_LOGIC;
-			blank_v : in STD_LOGIC;
-			RED_in : in STD_LOGIC_VECTOR (2 downto 0);
-			GREEN_in : in STD_LOGIC_VECTOR (2 downto 0);
-			BLUE_in : in STD_LOGIC_VECTOR (1 downto 0);
-			RED : out STD_LOGIC_VECTOR (2 downto 0);
-			GREEN : out STD_LOGIC_VECTOR (2 downto 0);
-			BLUE : out STD_LOGIC_VECTOR (1 downto 0)
-		);
-	end component;
-	
+	----- Gestor del juego
 	component gestor
     Port ( clk : in STD_LOGIC;
 			  reset : in STD_LOGIC;
@@ -132,15 +127,30 @@ architecture Behavioral of Flappy is
 		);
 	end component;
 
+	----- Generador de color
+	component gen_color
+		Port ( 
+			blank_h : in STD_LOGIC;
+			blank_v : in STD_LOGIC;
+			RED_int : in STD_LOGIC_VECTOR (2 downto 0);
+			GREEN_int : in STD_LOGIC_VECTOR (2 downto 0);
+			BLUE_int : in STD_LOGIC_VECTOR (1 downto 0);
+			RED : out STD_LOGIC_VECTOR (2 downto 0);
+			GREEN : out STD_LOGIC_VECTOR (2 downto 0);
+			BLUE : out STD_LOGIC_VECTOR (1 downto 0)
+		);
+	end component;
+
 	
+	------------------------ SEÑALES ---------------------------
 	--Simulacion
-	--constant alto: integer := 4;
-	--constant ancho: integer := 9;
+	--constant alto_pantalla: integer := 4;
+	--constant ancho_pantalla: integer := 9;
 	--constant Nbit_ejes: integer := 5;
 
 	--Señales de los ejes x e y
-	constant alto: integer := 479;
-	constant ancho: integer := 639;
+	constant alto_pantalla: integer := 479;
+	constant ancho_pantalla: integer := 639;
 	constant Nbit_ejes: integer := 10;
 	signal eje_x, eje_y: STD_LOGIC_VECTOR(Nbit_ejes-1 downto 0);
 	
@@ -149,7 +159,7 @@ architecture Behavioral of Flappy is
 	signal end_line_h, end_line_v: STD_LOGIC;
 	signal enable_cont_h, enable_cont_v: STD_LOGIC;
 	
-	--Señales internas de color (conexión dibuja->gen_color)
+	--Señales internas de color (conexión gestor->gen_color)
 	signal RED_int, GREEN_int: STD_LOGIC_VECTOR(2 downto 0);
 	signal BLUE_int: STD_LOGIC_VECTOR(1 downto 0);
 	
@@ -159,9 +169,12 @@ architecture Behavioral of Flappy is
 	signal RED_columna, GREEN_columna: STD_LOGIC_VECTOR(2 downto 0);
 	signal BLUE_columna: STD_LOGIC_VECTOR(1 downto 0);
 	
+	--Señales de control del juego
 	signal muerte : STD_LOGIC;
 
 begin
+
+	------------------ INSTANCIAS DE COMPONENTES ---------------------
 	fpixel: frec_pixel
 		Port Map (
 			clk => clk,
@@ -197,13 +210,13 @@ begin
 	comp_h: comparador
 		Generic map( 
 			Nbit => Nbit_ejes,
-			End_of_Screen => ancho,
-			Start_of_Pulse => ancho+16,
-			End_Of_Pulse => ancho+16+96,
-			End_Of_Line => ancho+16+96+48
-			--Start_of_Pulse => ancho+1,
-			--End_Of_Pulse => ancho+1+3,
-			--End_Of_Line => ancho+1+3+5
+			End_of_Screen => ancho_pantalla,
+			Start_of_Pulse => ancho_pantalla+16,
+			End_Of_Pulse => ancho_pantalla+16+96,
+			End_Of_Line => ancho_pantalla+16+96+48
+			--Start_of_Pulse => ancho_pantalla+1,
+			--End_Of_Pulse => ancho_pantalla+1+3,
+			--End_Of_Line => ancho_pantalla+1+3+5
 		)
 		Port map( 
 			clk => clk,
@@ -217,13 +230,13 @@ begin
 	comp_v: comparador
 		Generic map( 
 			Nbit => Nbit_ejes,
-			End_of_Screen => alto,
-			Start_of_Pulse => alto+10,
-			End_Of_Pulse => alto+10+2,
-			End_Of_Line => alto+10+2+29
-			--Start_of_Pulse => alto+1,
-			--End_Of_Pulse => alto+1+2,
-			--End_Of_Line => alto+1+2+3
+			End_of_Screen => alto_pantalla,
+			Start_of_Pulse => alto_pantalla+10,
+			End_Of_Pulse => alto_pantalla+10+2,
+			End_Of_Line => alto_pantalla+10+2+29
+			--Start_of_Pulse => alto_pantalla+1,
+			--End_Of_Pulse => alto_pantalla+1+2,
+			--End_Of_Line => alto_pantalla+1+2+3
 		)
 		Port map( 
 			clk => clk,
@@ -234,11 +247,11 @@ begin
 			O3 => end_line_v
 		);
 
-	puidgy: pajaro
+	bird: pajaro
 		Generic map(
 			Nbit => Nbit_ejes,
 			pos_x => 100,
-			alto => 32
+			tam_pajaro => 63
 		)
 		Port map( 
 			clk => clk,
@@ -248,9 +261,9 @@ begin
 			muerte => muerte,
 			eje_x => eje_x,
 			eje_y => eje_y,
-			RED_int => RED_pajaro,
-			GREEN_int => GREEN_pajaro,
-			BLUE_int => BLUE_pajaro
+			RED => RED_pajaro,
+			GREEN => GREEN_pajaro,
+			BLUE => BLUE_pajaro
 		);
 		
 	col: columna
@@ -258,7 +271,8 @@ begin
 			Nbit => Nbit_ejes,
 			ancho_col => 64,
 			pos_y_gap => 128,
-			max_x => ancho
+			tam_gap => 170,
+			MAX_X => ancho_pantalla
 		 )
 		 Port map( 
 			clk => clk,
@@ -292,9 +306,9 @@ begin
 		Port map (		
 			blank_h => blank_h,
 			blank_v => blank_v,
-			RED_in => RED_int,
-			GREEN_in => GREEN_int,
-			BLUE_in => BLUE_int,
+			RED_int => RED_int,
+			GREEN_int => GREEN_int,
+			BLUE_int => BLUE_int,
 			RED => R,
 			GREEN => G,
 			BLUE => B
