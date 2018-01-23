@@ -1,3 +1,20 @@
+<<<<<<< HEAD
+# Reloj bueno es el M6
+NET "clk" LOC = "M6";
+NET "reset" LOC = "G12";
+NET "botonSubir" LOC = "C11";
+
+NET "VS" LOC = "K13";
+NET "HS" LOC = "J14";
+
+NET "R<0>" LOC = "C14";
+NET "R<1>" LOC = "D13";
+NET "R<2>" LOC = "F13";
+NET "G<0>" LOC = "F14";
+NET "G<1>" LOC = "G13";
+NET "G<2>" LOC = "G14";
+NET "B<0>" LOC = "H13";
+=======
 # Reloj bueno es el M6
 NET "clk" LOC = "B8";
 NET "reset" LOC = "G12";
@@ -13,4 +30,5 @@ NET "G<0>" LOC = "F14";
 NET "G<1>" LOC = "G13";
 NET "G<2>" LOC = "G14";
 NET "B<0>" LOC = "H13";
+>>>>>>> 48053a99182101cc0a582997154526fc92c50df7
 NET "B<1>" LOC = "J13";
